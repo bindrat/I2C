@@ -1,0 +1,25 @@
+[Unit]
+Description=Raspberry Pi LCD System Monitor
+After=network.target
+
+[Service]
+Type=simple
+# ExecStart: choose one of the two lines below (uncomment the one you need)
+# 1) If you run the script with system Python:
+#ExecStart=/usr/bin/python3 /root/sysmon_lcd.py
+# 2) If you use a virtualenv (example: /root/lcdenv/bin/python)
+ExecStart=/root/lcdenv/bin/python /root/sysmon_lcd.py
+
+# Recommended: run as root if your LCD code needs direct GPIO/I2C access.
+# If you prefer a non-root user, change to User=pi (and ensure that user can access I2C).
+User=root
+WorkingDirectory=/root
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=sysmon-lcd
+
+[Install]
+WantedBy=multi-user.target
+
