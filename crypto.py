@@ -24,12 +24,12 @@ COINGECKO_URL = ("https://api.coingecko.com/api/v3/simple/price"
                  "&include_24hr_change=true")
 
 # Scrolling params for BTC row
-STATIC_DISPLAY = 2.0          # seconds to show leftmost BTC text before scrolling
+STATIC_DISPLAY = 5.0          # seconds to show leftmost BTC text before scrolling
 SCROLL_STEP = 0.5             # seconds per scroll step
 SCROLL_GAP = "    "           # gap between repeats when scrolling
 
 # Update marker params
-UPDATED_DISPLAY_SECONDS = 5.0  # how long '*' is shown after an update
+UPDATED_DISPLAY_SECONDS = 3.0  # how long '*' is shown after an update
 
 VERBOSE = False
 
