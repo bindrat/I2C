@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-i2c_rotator.py
+i2c_rotator_by_script.py
 
-Run a list of display scripts sequentially. Each script runs for DURATION seconds
-(5 minutes by default); then it's terminated and the next script is launched.
+Rotation manager that runs display scripts sequentially. Each entry in SCRIPTS can be:
+ - "/full/path/to/script.py"              # uses DEFAULT_DURATION
+ - ("/full/path/to/script.py", 180)       # runs 180 seconds for this script
 
-This ensures only one process writes to the I2C display at a time.
+Only one process owns the display at a time. The rotator kills each script after its duration.
 """
 
 import subprocess
@@ -16,40 +17,61 @@ import sys
 from datetime import datetime
 
 # ---------- CONFIG ----------
-# Put full absolute paths to the scripts you want to rotate.
-# Edit these to match your actual script locations.
+# Edit this list to include your scripts. Use strings or (path, seconds) tuples.
+# Example:
 SCRIPTS = [
-    "/root/I2C/sysmon_lcd.py",
-    "/root/I2C/crypto.py",
-    "/root/I2C/time_quote.py",            # replace with your clock/quotes script path
-    "/root/I2C/nifty.py",               # or your ticker script path
+    ("/root/I2C/sysmon_lcd.py", 60),            # 5 minutes
+    ("/root/I2C/time_quote.py", 180),           # 3 minutes
+    ("/root/I2C/crypto.py", 90 ),                         # 2 minutes
+    ("/root/I2C/nifty.py", 300),                             # 5 minutes
+    ("/root/I2C/fact.py", 30),                             # 5 minutes
+    ("/root/I2C/joke.py", 30),                             # 5 minutes
+    ("/root/I2C/word.py", 100),                             # 5 minutes
 ]
 
-DURATION = 3 * 60   # seconds each script runs (5 minutes)
-SLEEP_AFTER_STOP = 0.5  # short pause after killing a script (seconds)
-
-PYTHON = "/root/lcdenv/bin/python"  # system python; change if you use a venv (example: /root/lcdenv/bin/python)
+DEFAULT_DURATION = 300   # seconds if a script is listed as string only
+SLEEP_AFTER_STOP = 0.6   # seconds to wait after stopping a script
+PYTHON = "/root/lcdenv/bin/python"  # change to your venv python if needed (e.g. /root/lcdenv/bin/python)
 
 VERBOSE = True
 
-# ---------- helper functions ----------
+# ---------- helpers ----------
 def log(msg):
     if VERBOSE:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
+def normalize_scripts(scripts):
+    """Return list of (path, duration) pairs. Expand strings with default duration."""
+    out = []
+    for entry in scripts:
+        if isinstance(entry, str):
+            out.append((entry, DEFAULT_DURATION))
+        elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
+            path = entry[0]
+            dur = entry[1] if len(entry) > 1 and isinstance(entry[1], (int, float)) else DEFAULT_DURATION
+            out.append((path, int(dur)))
+        else:
+            log(f"Skipping invalid entry in SCRIPTS: {entry}")
+    return out
+
+def make_executable(path):
+    try:
+        st = os.stat(path)
+        os.chmod(path, st.st_mode | 0o111)
+    except Exception:
+        pass
+
 def run_script(path):
-    """Start the script as a subprocess and return the Popen object."""
+    """Start the script as a subprocess and return the Popen object (or None on failure)."""
     if not os.path.isfile(path):
         log(f"Script not found: {path}")
         return None
-    # ensure executable permission
+    make_executable(path)
     try:
-        os.chmod(path, os.stat(path).st_mode | 0o111)
-    except Exception:
-        pass
-    # Launch the script with Python
-    try:
-        p = subprocess.Popen([PYTHON, path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setsid)
+        p = subprocess.Popen([PYTHON, path],
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL,
+                             preexec_fn=os.setsid)
         log(f"Started: {path} (pid {p.pid})")
         return p
     except Exception as e:
@@ -57,30 +79,32 @@ def run_script(path):
         return None
 
 def stop_process(p):
-    """Terminate process group cleanly, then force kill if needed."""
+    """Terminate a process group gracefully, then force-kill if needed."""
     if p is None:
         return
     try:
-        pg = os.getpgid(p.pid)
-        log(f"Stopping pid {p.pid} (pg {pg})")
-        os.killpg(pg, signal.SIGTERM)
-        # give it a moment
-        for _ in range(20):
+        pid = p.pid
+        pgid = os.getpgid(pid)
+        log(f"Stopping pid {pid} (pgid {pgid})")
+        os.killpg(pgid, signal.SIGTERM)
+        # wait briefly for graceful exit
+        for _ in range(40):  # up to ~4s
             if p.poll() is not None:
                 break
             time.sleep(0.1)
         if p.poll() is None:
-            log(f"Terminating pid {p.pid} (force)")
-            os.killpg(pg, signal.SIGKILL)
+            log(f"Force-killing pid {pid}")
+            os.killpg(pgid, signal.SIGKILL)
     except ProcessLookupError:
         pass
     except Exception as e:
-        log(f"Error stopping process {p.pid}: {e}")
+        log(f"Error stopping process: {e}")
 
 # ---------- main loop ----------
 def main():
-    if not SCRIPTS:
-        print("No scripts configured in SCRIPTS list. Edit the file to add scripts.")
+    normalized = normalize_scripts(SCRIPTS)
+    if not normalized:
+        print("No scripts configured in SCRIPTS. Edit the file to add scripts.")
         sys.exit(1)
 
     idx = 0
@@ -88,42 +112,39 @@ def main():
 
     try:
         while True:
-            script = SCRIPTS[idx % len(SCRIPTS)]
-            # start script
-            current_proc = run_script(script)
+            path, duration = normalized[idx % len(normalized)]
+            log(f"Next: {path} for {duration}s")
+            current_proc = run_script(path)
             start_time = time.time()
 
-            # run for DURATION seconds (but re-check process is alive)
+            # run loop: check if process is alive and duration not exceeded
             while True:
-                # if process died early, break and move to next script
                 if current_proc is None:
-                    log(f"Process for {script} did not start. Moving on.")
+                    log(f"Process for {path} failed to start; moving on.")
                     break
                 if current_proc.poll() is not None:
-                    log(f"Process {script} exited early with code {current_proc.returncode}.")
+                    log(f"Process {path} exited early (code {current_proc.returncode}).")
                     break
                 elapsed = time.time() - start_time
-                if elapsed >= DURATION:
-                    log(f"Time up for {script} ({int(elapsed)}s).")
+                if elapsed >= duration:
+                    log(f"Time up for {path} ({int(elapsed)}s).")
                     break
-                # sleep small interval to be responsive
+                # responsive sleep
                 time.sleep(0.5)
 
-            # stop process
+            # stop the process if still running
             stop_process(current_proc)
             current_proc = None
-            # short pause to let display settle
             time.sleep(SLEEP_AFTER_STOP)
 
-            # move to next script
             idx += 1
 
     except KeyboardInterrupt:
-        log("KeyboardInterrupt received — shutting down.")
+        log("KeyboardInterrupt — shutting down rotator.")
         stop_process(current_proc)
         sys.exit(0)
     except Exception as e:
-        log(f"Rotator exception: {e}")
+        log(f"Rotator error: {e}")
         stop_process(current_proc)
         raise
 
