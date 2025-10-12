@@ -27,9 +27,9 @@ LAST_CHOICE_FILE = "/tmp/i2c_funpack_last.txt"
 WORD_INDEX_FILE  = "/tmp/i2c_funpack_words_index.txt"
 
 CATEGORY_WEIGHTS = {
-    "word": 0.6,
-    "fact": 0.25,
-    "joke": 0.15
+    "word": 0.80,
+    "fact": 0.10,
+    "joke": 0.10
 }
 
 # Expanded fallback words
