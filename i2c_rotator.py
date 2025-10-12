@@ -21,12 +21,10 @@ from datetime import datetime
 # Example:
 SCRIPTS = [
     ("/root/I2C/sysmon_lcd.py", 60),            # 5 minutes
-    ("/root/I2C/time_quote.py", 180),           # 3 minutes
-    ("/root/I2C/crypto.py", 90 ),                         # 2 minutes
-    ("/root/I2C/nifty.py", 300),                             # 5 minutes
-    ("/root/I2C/fact.py", 30),                             # 5 minutes
-    ("/root/I2C/joke.py", 30),                             # 5 minutes
-    ("/root/I2C/word.py", 100),                             # 5 minutes
+    ("/root/I2C/time_quote.py", 60),           # 3 minutes
+    ("/root/I2C/crypto.py", 60),                         # 2 minutes
+    ("/root/I2C/funpack.py", 180),                             # 5 minutes
+    ("/root/I2C/nifty.py", 200),                             # 5 minutes
 ]
 
 DEFAULT_DURATION = 300   # seconds if a script is listed as string only
