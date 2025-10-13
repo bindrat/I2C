@@ -18,7 +18,7 @@ LCD_ADDR = 0x27
 I2C_PORT = 1
 COLS = 16
 
-UPDATE_INTERVAL = 60
+UPDATE_INTERVAL = 30
 STATIC_DISPLAY = 2.0
 SCROLL_STEP = 0.15
 SCROLL_GAP = "    "
@@ -27,9 +27,9 @@ LAST_CHOICE_FILE = "/tmp/i2c_funpack_last.txt"
 WORD_INDEX_FILE  = "/tmp/i2c_funpack_words_index.txt"
 
 CATEGORY_WEIGHTS = {
-    "word": 0.80,
-    "fact": 0.10,
-    "joke": 0.10
+    "word": 0.90,
+    "fact": 0.05,
+    "joke": 0.05
 }
 
 # Expanded fallback words
