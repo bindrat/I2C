@@ -20,13 +20,24 @@ from datetime import datetime
 # Edit this list to include your scripts. Use strings or (path, seconds) tuples.
 # Example:
 SCRIPTS = [
-    ("/root/I2C/sysmon_lcd.py", 60),            # 5 minutes
-    ("/root/I2C/time_quote.py", 60),           # 3 minutes
-    ("/root/I2C/crypto.py", 60),                         # 2 minutes
-    ("/root/I2C/gold.py", 60),                             # 5 minutes
-    ("/root/I2C/dollar.py", 60),                             # 5 minutes
-    ("/root/I2C/word_improved.py", 120),                             # 5 minutes
-    ("/root/I2C/nifty.py", 200),                             # 5 minutes
+    ("/root/I2C/sysmon_lcd.py", 60),           # 1 minutes
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/time_quote.py", 30),           # 1 minutes
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/tempi2ctrend.py", 60),
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/crypto.py", 30),               # 1 minutes
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/gold_noapi.py", 30),                 # 1 minutes
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/dollar.py", 30),               # 1 minutes
+    ("/root/I2C/blink.py", 2),           # 1 minutes
+    ("/root/I2C/tempi2ctrend.py", 60),
+    ("/root/I2C/blink.py", 3),           # 1 minutes
+#    ("/root/I2C/word_improved.py", 120),       # 2 minutes
+#    ("/root/I2C/blink.py", 2),           # 1 minutes
+#    ("/root/I2C/nifty.py", 200),               # 3 minutes
+#    ("/root/I2C/tempi2ctrend.py", 60),
 ]
 
 DEFAULT_DURATION = 300   # seconds if a script is listed as string only
